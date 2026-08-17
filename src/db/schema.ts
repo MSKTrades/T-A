@@ -1,12 +1,11 @@
 // Sprint 1.1 — core master data: Organization, EmployeeType, WorkSchedule, Award, Employee.
-// Built with Drizzle ORM against SQLite for local dev (no external DB account needed yet).
-// Table shapes intentionally follow TA_App_Data_Model.md so moving the `provider` to Postgres
-// later (Neon/Supabase) is a config change, not a redesign — see drizzle.config.ts.
+// Migrated from local SQLite to Postgres (Neon/Supabase-compatible) so writes actually
+// persist once deployed — Vercel's serverless functions have a read-only filesystem, so a
+// SQLite file baked into the deployment can be read but never durably written to.
 
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { pgTable, text, real, boolean, timestamp } from "drizzle-orm/pg-core";
 
-export const organizations = sqliteTable("organizations", {
+export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   primaryJurisdiction: text("primary_jurisdiction").notNull(),
@@ -14,19 +13,19 @@ export const organizations = sqliteTable("organizations", {
   timezone: text("timezone").notNull().default("Australia/Sydney"),
   defaultGeofencePolicy: text("default_geofence_policy").notNull().default("soft_warning"),
   defaultToilBankingMultiplier: real("default_toil_banking_multiplier").notNull().default(1.0),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const employeeTypes = sqliteTable("employee_types", {
+export const employeeTypes = pgTable("employee_types", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   typeName: text("type_name").notNull(), // Permanent / Temporary / Casual
-  flextimeEligible: integer("flextime_eligible", { mode: "boolean" }).notNull().default(false),
-  toilEligible: integer("toil_eligible", { mode: "boolean" }).notNull().default(false),
+  flextimeEligible: boolean("flextime_eligible").notNull().default(false),
+  toilEligible: boolean("toil_eligible").notNull().default(false),
   casualLoadingPct: real("casual_loading_pct"),
 });
 
-export const workSchedules = sqliteTable("work_schedules", {
+export const workSchedules = pgTable("work_schedules", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
@@ -39,7 +38,7 @@ export const workSchedules = sqliteTable("work_schedules", {
   daysPattern: text("days_pattern").notNull().default("Mon-Fri"),
 });
 
-export const awards = sqliteTable("awards", {
+export const awards = pgTable("awards", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
@@ -47,7 +46,7 @@ export const awards = sqliteTable("awards", {
   defaultToilBankingMultiplier: real("default_toil_banking_multiplier").notNull().default(1.0),
 });
 
-export const employees = sqliteTable("employees", {
+export const employees = pgTable("employees", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   employeeTypeId: text("employee_type_id").notNull().references(() => employeeTypes.id),
