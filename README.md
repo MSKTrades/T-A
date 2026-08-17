@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# T&A App — Sprint 1.1
 
-## Getting Started
+Organization, EmployeeType, WorkSchedule, Award, Employee — basic CRUD, seeded with a
+test org matching the reference SOW (day-worker bandwidth 7:30am–6pm, 8-hour standard day).
 
-First, run the development server:
+Built with Next.js (App Router) + Drizzle ORM + **Postgres** (Neon/Supabase in production via
+Vercel's Storage tab; any local Postgres for dev). Originally built on local SQLite, migrated
+to Postgres once deployed to Vercel — serverless functions there have a read-only filesystem,
+so a SQLite file baked into the deployment could be read but writes never persisted.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Run it locally
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Get a Postgres connection string — either a local Postgres, or a free Neon/Supabase project.
+2. Create `.env.local` in the project root:
+   ```
+   DATABASE_URL="postgres://user:password@host:5432/dbname"
+   ```
+3. Then:
+   ```bash
+   npm install
+   npm run db:push      # creates tables from src/db/schema.ts
+   npm run db:seed       # seeds one demo org + award + schedule + 2 employees
+   npm run dev            # http://localhost:3000
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploying (Vercel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. In the Vercel project's **Storage** tab, add a Postgres database (Neon or Supabase) —
+   Vercel sets `DATABASE_URL` automatically for you when you do this.
+2. Push to GitHub; Vercel redeploys automatically.
+3. Run `npm run db:push` and `npm run db:seed` once, pointed at the same `DATABASE_URL`
+   Vercel is using, to create and seed the production tables (only needed once, or whenever
+   the schema changes).
 
-## Learn More
+## What's here
 
-To learn more about Next.js, take a look at the following resources:
+- `src/db/schema.ts` — the sprint 1.1 tables, matching `TA_App_Data_Model.md`
+- `src/db/seed.ts` — demo data seeded from the SOW
+- `src/app/api/*/route.ts` — GET (list, optional `?orgId=` filter) + POST (create) for each entity
+- `src/app/page.tsx` — a plain read-only admin view of everything seeded, to eyeball that it's wired up correctly
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Not yet built (next sprints per `TA_App_Build_Plan.md`)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 1.2: RuleScenario schema + seeding the SOW's 40 scenarios
+- 1.3–1.4: TimeType + TimeEvent capture + TimeSheetEntry generation
+- 1.5: the valuation engine itself (the real product)
